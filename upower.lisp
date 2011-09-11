@@ -1,10 +1,5 @@
 (in-package #:upower)
 
-(defparameter *all-devices* nil)
-(defparameter *devices-info* nil
-  "A list of lists containing 
- (battery-name percentage charge% state time-to-full time-to-empty)")
-
 (defun enumerate-devices (bus)
   (dbus:invoke-method (dbus:bus-connection bus)
 		      "EnumerateDevices"
@@ -62,32 +57,3 @@ property is only valid if the property type has the value :line-power"
 TRUE for laptop batteries and UPS devices, but set FALSE for wireless
 mice or PDAs."
   (dbus:get-property bus device "org.freedesktop.UPower" "PowerSupply"))
-
-;;TODO: DeviceAdded/Removed
-(defun main-loop ()
-  (dbus:with-open-bus (bus (dbus:system-server-addresses))
-    (setf *all-devices* (enumerate-devices bus))
-    (let ((batteries nil)
-	  (message nil))
-      (loop for i in *all-devices*
-	 do (when (eq (device-type bus i) :battery)
-	      (push i batteries)))
-      (format t "All bateries: ~a~%" batteries)
-      (flet ((update-state ()
-	       (setf *devices-info*
-		     (loop for battery in batteries
-			collect (list battery 
-				      (device-percentage bus battery) 
-				      (device-state bus battery)
-				      (device-time-to-full bus battery)
-				      (device-time-to-empty bus battery))))))
-	(update-state)
-	(dbus:add-match bus :path "/org/freedesktop/UPower" :interface "org.freedesktop.UPower" :member "DeviceChanged")
-	(loop do
-	     (setf message (dbus::wait-for-incoming-message (dbus:bus-connection bus) '(dbus:signal-message)))
-	     (when (and (typep message 'dbus:signal-message)
-			(string-equal (dbus:message-member message) "DeviceChanged"))
-	       (update-state)))))))
-
-(defun get-devices-info ()
-  *devices-info*)
