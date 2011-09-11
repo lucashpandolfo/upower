@@ -1,0 +1,5 @@
+Upower binding for common lisp.
+
+A module for use with STUMPWM is provided.
+
+To use the module you need to compile STUMPWM with dbus support.
