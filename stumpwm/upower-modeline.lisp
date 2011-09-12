@@ -1,13 +1,16 @@
-(in-package :stumpwm)
+(defpackage #:stumpwm-upower
+  (:use #:cl)
+  (:export #:upower-helper))
 
-(pushnew '(#\b fmt-battery) *screen-mode-line-formatters* :test 'equal)
+(in-package #:stumpwm-upower)
+
+(pushnew '(#\b fmt-battery) stumpwm:*screen-mode-line-formatters* :test 'equal)
 
 (defparameter *all-devices* nil)
 
 (defparameter *devices-info* nil
   "A list of lists containing 
- (battery-name percentage charge% state time-to-full time-to-empty)")
-
+ (battery-name charge% state time-to-full time-to-empty)")
 
 (defun format-battery-state (data)
   (let ((state (nth 2 data))
@@ -18,7 +21,7 @@
       ((> percentage 50) (setf color "^b^[^3*"))
       ((> percentage 20) (setf color "^B^[^3*"))
       ((> percentage 10) (setf color "^b^[^1*"))
-      (t (setf color "^B^[^1")))
+      (t (setf color "^B^[^1*")))
     (case  state
       (:charging (setf symbol "^B^[^2*+^]"))
       (:discharging (setf symbol "^B^[^1*-^]"))

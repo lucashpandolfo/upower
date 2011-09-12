@@ -1,5 +1,5 @@
 (defpackage #:upower
-  (:use #:cl #:dbus)
+  (:use #:cl)
   (:export 
    #:enumerate-devices
    #:device-type
