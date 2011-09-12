@@ -1,3 +1,6 @@
+;; Battery module for STUMPWM.
+;; upower (and dbus) lisp bindings needs to be loaded before this module
+
 (defpackage #:stumpwm-upower
   (:use #:cl)
   (:export #:upower-helper))
@@ -30,17 +33,17 @@
          (format nil "~a~a~2d%^]^b" symbol color percentage)
          (format nil "~a~2d%^]^b" color percentage))))
 
-;;TODO: DeviceAdded/Removed
 (defun main-loop ()
   (dbus:with-open-bus (bus (dbus:system-server-addresses))
-    (setf *all-devices* (upower:enumerate-devices bus))
     (let ((batteries nil)
 	  (message nil))
-      (loop for i in *all-devices*
-	 do (when (eq (upower:device-type bus i) :battery)
-	      (push i batteries)))
-      (format t "All bateries: ~a~%" batteries)
-      (flet ((update-state ()
+      (flet ((update-devices ()
+	       (setf *all-devices* (upower:enumerate-devices bus))
+	       (setf *devices-info* nil)
+	       (loop for i in *all-devices*
+		  do (when (eq (upower:device-type bus i) :battery)
+		       (push i batteries))))
+	     (update-state ()
 	       (setf *devices-info*
 		     (loop for battery in batteries
 			collect (list battery 
@@ -48,13 +51,20 @@
 				      (upower:device-state bus battery)
 				      (upower:device-time-to-full bus battery)
 				      (upower:device-time-to-empty bus battery))))))
+
+	(update-devices)
 	(update-state)
 	(dbus:add-match bus :path "/org/freedesktop/UPower" :interface "org.freedesktop.UPower" :member "DeviceChanged")
+	(dbus:add-match bus :path "/org/freedesktop/UPower" :interface "org.freedesktop.UPower" :member "DeviceAdded")
+	(dbus:add-match bus :path "/org/freedesktop/UPower" :interface "org.freedesktop.UPower" :member "DeviceRemoved")
 	(loop do
 	     (setf message (dbus::wait-for-incoming-message (dbus:bus-connection bus) '(dbus:signal-message)))
-	     (when (and (typep message 'dbus:signal-message)
-			(string-equal (dbus:message-member message) "DeviceChanged"))
-	       (update-state)))))))
+	     (when (typep message 'dbus:signal-message)
+	       (cond
+		 ((string-equal (dbus:message-member message) "DeviceChanged") (update-state))
+		 ((string-equal (dbus:message-member message) "DeviceAdded") (update-devices))
+		 ((string-equal (dbus:message-member message) "DeviceRemoved") (update-devices))
+		 (t nil))))))))
 
 (defun get-devices-info ()
   *devices-info*)
