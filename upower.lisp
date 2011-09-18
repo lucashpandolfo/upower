@@ -57,3 +57,66 @@ property is only valid if the property type has the value :line-power"
 TRUE for laptop batteries and UPS devices, but set FALSE for wireless
 mice or PDAs."
   (dbus:get-property bus device "org.freedesktop.UPower" "PowerSupply"))
+
+(defun suspend (bus)
+  "Suspends the computer into a low power state. System state is not
+preserved if the power is lost."
+  (dbus:invoke-method (dbus:bus-connection bus)
+		      "Suspend"
+		      :path "/org/freedesktop/UPower"
+		      :interface "org.freedesktop.UPower"
+		      :destination "org.freedesktop.UPower"
+		      :signature ()))
+
+(defun hibernate (bus)
+  "Hibernates the computer into a low power state. System state is
+preserved if the power is lost."
+  (dbus:invoke-method (dbus:bus-connection bus)
+		      "Hibernate"
+		      :path "/org/freedesktop/UPower"
+		      :interface "org.freedesktop.UPower"
+		      :destination "org.freedesktop.UPower"
+		      :signature ()))
+
+(defun device-history (bus device-path type timespan resolution)
+  (dbus:invoke-method (dbus:bus-connection bus)
+		      "GetHistory"
+		      :path "/org/freedesktop/UPower/devices/battery_C23B"
+		      :interface "org.freedesktop.UPower.Device"
+		      :destination "org.freedesktop.UPower"
+		      :arguments (list type timespan resolution)
+		      :signature "suu"))
+
+(defun device-history (bus device-path type timespan resolution)
+"Gets history for the power device that is persistent across reboots.
+
+Type: The type of history. Valid types are :rate or :charge.
+
+Timespan: The amount of data to return in seconds, or -1 for all.
+
+Resolution: The approximate number of points to return. A higher
+resolution is more accurate, at the expense of plotting speed."
+  (dbus:invoke-method (dbus:bus-connection bus)
+		      "GetHistory"
+		      :path device-path
+		      :interface "org.freedesktop.UPower.Device"
+		      :destination "org.freedesktop.UPower"
+		      :arguments (list (format nil "~(~a~)" type) timespan resolution)
+		      :signature "suu"))
+
+(defun device-statistics (bus device-path type)
+  "Gets statistics for the power device that may be interesting to
+show on a graph in the session.  Type can be :charging
+or :discharging."
+  (dbus:invoke-method (dbus:bus-connection bus)
+		      "GetStatistics"
+		      :path device-path
+		      :interface "org.freedesktop.UPower.Device"
+		      :destination "org.freedesktop.UPower"
+		      :arguments (list (format nil "~(~a~)" type))
+		      :signature "s"))
+
+
+
+  
+
