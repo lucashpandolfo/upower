@@ -1,6 +1,0 @@
-Upower binding for common lisp.
-
-A module for use with STUMPWM is provided.
-
-To use the upower battery module you need to compile STUMPWM with dbus
-and upower support (or load those at runtime).
