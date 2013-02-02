@@ -3,7 +3,9 @@
 
 (defpackage #:stumpwm-upower
   (:use #:cl)
-  (:export #:upower-manager-launch))
+  (:export #:upower-manager-launch
+           #:suspend
+           #:hibernate))
 
 (in-package #:stumpwm-upower)
 
