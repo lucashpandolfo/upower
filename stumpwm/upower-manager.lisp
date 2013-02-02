@@ -102,11 +102,15 @@
 
 (defun upower-manager-launch ()
   "Starts a new thread for monitoring changes in upower."
+  (format t "Starting upower manager....")
   (let ((thread (find *upower-thread-name* (bordeaux-threads:all-threads) 
-                :key #'bordeaux-threads:thread-name)))
-  (when thread
-    (stumpwm:message "UPower manager already running: Restarting...")
-    (bordeaux-threads:destroy-thread thread))
-  (bordeaux-threads:make-thread (lambda () (handler-case (main-loop)
-                                             (error () (stumpwm:message "Closing UPower manager"))))
-                                :name *upower-thread-name*)))
+                      :key #'bordeaux-threads:thread-name)))
+    (when thread
+      (stumpwm:message "UPower manager already running: Restarting...")
+      (bordeaux-threads:destroy-thread thread))
+    (bordeaux-threads:make-thread (lambda () (handler-case 
+                                                 (main-loop)
+                                               (error (condition) 
+                                                 (progn (stumpwm:message "Closing UPower manager. See .xsession-errors for details." condition)
+                                                        (format *error-output* "~a" condition)))))
+                                  :name *upower-thread-name*)))
