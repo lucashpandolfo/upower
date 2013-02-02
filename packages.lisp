@@ -8,4 +8,6 @@
    #:device-time-to-full
    #:device-time-to-empty
    #:device-online
-   #:device-power-supply))
+   #:device-power-supply
+   #:suspend
+   #:hibernate))

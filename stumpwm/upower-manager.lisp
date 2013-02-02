@@ -1,12 +1,13 @@
-;; Battery module for STUMPWM.
-;; upower (and dbus) lisp bindings needs to be loaded before this module
+;; UPower module for STUMPWM.
+;; Provides a battery formatter and suspend/hibernate capabilities
 
 (defpackage #:stumpwm-upower
   (:use #:cl)
-  (:export #:upower-helper))
+  (:export #:upower-manager-launch))
 
 (in-package #:stumpwm-upower)
 
+;; Add battery formatter
 (pushnew '(#\b fmt-battery) stumpwm:*screen-mode-line-formatters* :test 'equal)
 
 (defparameter *all-devices* nil)
@@ -37,20 +38,21 @@
   (dbus:with-open-bus (bus (dbus:system-server-addresses))
     (let ((batteries nil)
 	  (message nil))
-      (flet ((update-devices ()
-	       (setf *all-devices* (upower:enumerate-devices bus))
-	       (setf *devices-info* nil)
-	       (loop for i in *all-devices*
-		  do (when (eq (upower:device-type bus i) :battery)
-		       (push i batteries))))
-	     (update-state ()
-	       (setf *devices-info*
-		     (loop for battery in batteries
-			collect (list battery 
-				      (upower:device-percentage bus battery) 
-				      (upower:device-state bus battery)
-				      (upower:device-time-to-full bus battery)
-				      (upower:device-time-to-empty bus battery))))))
+      (labels ((update-devices ()
+                 (setf *all-devices* (upower:enumerate-devices bus))
+                 (setf *devices-info* nil)
+                 (loop for i in *all-devices*
+                    do (when (eq (upower:device-type bus i) :battery)
+                         (push i batteries)))
+                 (update-state))
+               (update-state ()
+                 (setf *devices-info*
+                       (loop for battery in batteries
+                          collect (list battery 
+                                        (upower:device-percentage bus battery) 
+                                        (upower:device-state bus battery)
+                                        (upower:device-time-to-full bus battery)
+                                        (upower:device-time-to-empty bus battery))))))
 
 	(update-devices)
 	(update-state)
@@ -60,11 +62,12 @@
 	(loop do
 	     (setf message (dbus::wait-for-incoming-message (dbus:bus-connection bus) '(dbus:signal-message)))
 	     (when (typep message 'dbus:signal-message)
-	       (cond
-		 ((string-equal (dbus:message-member message) "DeviceChanged") (update-state))
-		 ((string-equal (dbus:message-member message) "DeviceAdded") (update-devices))
-		 ((string-equal (dbus:message-member message) "DeviceRemoved") (update-devices))
-		 (t nil))))))))
+               (let ((type (dbus:message-member message)))
+                 (cond
+                   ((string-equal type "DeviceChanged") (update-state))
+                   ((string-equal type "DeviceAdded")   (update-devices))
+                   ((string-equal type "DeviceRemoved") (update-devices))
+                   (t nil)))))))))
 
 (defun get-devices-info ()
   *devices-info*)
@@ -75,7 +78,33 @@
     (if (null states)
         "^B^[^4*LINE^]^b"
         (format-battery-state (car states)))))
-    
-(defun upower-helper ()
+
+;;Suspend/Hibernate helpers
+(defun suspend ()
+  (stumpwm:message "^B^[^2*Suspending.....^]")
+  (handler-case (dbus:with-open-bus (bus (dbus:system-server-addresses))
+                  (upower:suspend bus))
+    (error () (format nil "^B^[^1*Error:^] Could not suspend"))))
+
+;;Suspend/Hibernate helpers
+(defun hibernate ()
+  (stumpwm:message "^B^[^4*Hibernating.....^]")
+  (handler-case (dbus:with-open-bus (bus (dbus:system-server-addresses))
+                  (upower:hibernate bus)))
+    (error () (format nil "^B^[^1*Error:^] Could not hibernate")))
+
+
+;;Manager helpers
+
+(defvar *upower-thread-name* "Stumpwm UPower main loop")
+
+(defun upower-manager-launch ()
   "Starts a new thread for monitoring changes in upower."
-  (bordeaux-threads:make-thread #'main-loop :name "Upower: main loop thread"))
+  (let ((thread (find *upower-thread-name* (bordeaux-threads:all-threads) 
+                :key #'bordeaux-threads:thread-name)))
+  (when thread
+    (stumpwm:message "UPower manager already running: Restarting...")
+    (bordeaux-threads:destroy-thread thread))
+  (bordeaux-threads:make-thread (lambda () (handler-case (main-loop)
+                                             (error () (stumpwm:message "Closing UPower manager"))))
+                                :name *upower-thread-name*)))

@@ -1,16 +1,18 @@
 (in-package #:upower)
 
+(defparameter *upower-service* "org.freedesktop.UPower")
+
 (defun enumerate-devices (bus)
   (dbus:invoke-method (dbus:bus-connection bus)
 		      "EnumerateDevices"
 		      :path "/org/freedesktop/UPower"
 		      :interface "org.freedesktop.UPower"
-		      :destination "org.freedesktop.UPower"
+		      :destination *upower-service*
 		      :signature ()))
 
 (defun device-type (bus device)
-"Type of power source."
-  (case (dbus:get-property bus device "org.freedesktop.UPower" "Type")
+  "Type of power source."
+  (case (dbus:get-property bus *upower-service* device "org.freedesktop.UPower" "Type")
     (0 :unknown)
     (1 :line-power)
     (2 :battery)
@@ -23,7 +25,7 @@
 
 (defun device-state (bus device)
 "The battery power state."
-  (case (dbus:get-property bus device "org.freedesktop.UPower" "State")
+  (case (dbus:get-property bus *upower-service* device "org.freedesktop.UPower" "State")
     (0 :unknown)
     (1 :charging)
     (2 :discharging)
@@ -35,28 +37,28 @@
 (defun device-percentage (bus device)
 "The amount of energy left in the power source expressed as a
 percentage between 0 and 100. "
-  (dbus:get-property bus device "org.freedesktop.UPower" "Percentage"))
+  (dbus:get-property bus *upower-service* device "org.freedesktop.UPower" "Percentage"))
 
 (defun device-time-to-full (bus device)
 "Number of seconds until the power source is considered full. Is set
 to 0 if unknown."
-  (dbus:get-property bus device "org.freedesktop.UPower" "TimeToFull"))
+  (dbus:get-property bus *upower-service* device "org.freedesktop.UPower" "TimeToFull"))
 
 (defun device-time-to-empty (bus device)
 "Number of seconds until the power source is considered empty. Is set
 to 0 if unknown."
-  (dbus:get-property bus device "org.freedesktop.UPower" "TimeToEmpty"))
+  (dbus:get-property bus *upower-service* device "org.freedesktop.UPower" "TimeToEmpty"))
 
 (defun device-online (bus device)
   "Whether power is currently being provided through line power. This
 property is only valid if the property type has the value :line-power"
-  (dbus:get-property bus device "org.freedesktop.UPower" "Online"))
+  (dbus:get-property bus *upower-service* device "org.freedesktop.UPower" "Online"))
 
 (defun device-power-supply (bus device)
 "If the power device is used to supply the system. This would be set
 TRUE for laptop batteries and UPS devices, but set FALSE for wireless
 mice or PDAs."
-  (dbus:get-property bus device "org.freedesktop.UPower" "PowerSupply"))
+  (dbus:get-property bus *upower-service* device "org.freedesktop.UPower" "PowerSupply"))
 
 (defun suspend (bus)
   "Suspends the computer into a low power state. System state is not
@@ -65,7 +67,7 @@ preserved if the power is lost."
 		      "Suspend"
 		      :path "/org/freedesktop/UPower"
 		      :interface "org.freedesktop.UPower"
-		      :destination "org.freedesktop.UPower"
+		      :destination *upower-service*
 		      :signature ()))
 
 (defun hibernate (bus)
@@ -75,7 +77,7 @@ preserved if the power is lost."
 		      "Hibernate"
 		      :path "/org/freedesktop/UPower"
 		      :interface "org.freedesktop.UPower"
-		      :destination "org.freedesktop.UPower"
+		      :destination *upower-service*
 		      :signature ()))
 
 (defun device-history (bus device-path type timespan resolution)
@@ -83,7 +85,7 @@ preserved if the power is lost."
 		      "GetHistory"
 		      :path "/org/freedesktop/UPower/devices/battery_C23B"
 		      :interface "org.freedesktop.UPower.Device"
-		      :destination "org.freedesktop.UPower"
+		      :destination *upower-service*
 		      :arguments (list type timespan resolution)
 		      :signature "suu"))
 
@@ -100,7 +102,7 @@ resolution is more accurate, at the expense of plotting speed."
 		      "GetHistory"
 		      :path device-path
 		      :interface "org.freedesktop.UPower.Device"
-		      :destination "org.freedesktop.UPower"
+		      :destination *upower-service*
 		      :arguments (list (format nil "~(~a~)" type) timespan resolution)
 		      :signature "suu"))
 
@@ -112,7 +114,7 @@ or :discharging."
 		      "GetStatistics"
 		      :path device-path
 		      :interface "org.freedesktop.UPower.Device"
-		      :destination "org.freedesktop.UPower"
+		      :destination *upower-service*
 		      :arguments (list (format nil "~(~a~)" type))
 		      :signature "s"))
 
