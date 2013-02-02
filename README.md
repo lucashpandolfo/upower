@@ -20,11 +20,11 @@ plugins directory and add the following code to your .stumpwmrc file
   (stumpwm-upower:upower-manager-launch))
 
 (stumpwm:defcommand suspend () ()
-  "Suspend vis UPower"
+  "Suspend via UPower"
   (stumpwm-upower:suspend))
 
 (stumpwm:defcommand hibernate () ()
-  "Hibernate vis UPower"
+  "Hibernate via UPower"
   (stumpwm-upower:hibernate))
 
 ;; Launch at init
